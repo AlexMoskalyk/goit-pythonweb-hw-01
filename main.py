@@ -1,11 +1,17 @@
 import mimetypes
 import json
+import logging
 from pathlib import Path
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from datetime import datetime
+from typing import Dict, Any
 
 from jinja2 import Environment, FileSystemLoader
+
+# Налаштування логування
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).parent
 STORAGE_DIR = BASE_DIR / "storage"
@@ -15,7 +21,7 @@ jinja = Environment(loader=FileSystemLoader(TEMPLATES_DIR))
 
 
 class MyHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
+    def do_GET(self) -> None:
         route = urllib.parse.urlparse(self.path)
         match route.path:
             case "/":
@@ -31,14 +37,16 @@ class MyHandler(BaseHTTPRequestHandler):
                 else:
                     self.send_html("error.html", 404)
 
-    def do_POST(self):
+    def do_POST(self) -> None:
         if self.path == "/message":
             size = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(size).decode("utf-8")
             parse_body = urllib.parse.unquote_plus(body)
-            data_dict = {
+            data_dict: Dict[str, str] = {
                 item.split("=")[0]: item.split("=")[1] for item in parse_body.split("&")
             }
+
+            logger.info(f"Received message: {data_dict}")
 
             if not STORAGE_DIR.exists():
                 STORAGE_DIR.mkdir(parents=True)
@@ -49,7 +57,7 @@ class MyHandler(BaseHTTPRequestHandler):
             if DATA_FILE.exists():
                 with open(DATA_FILE, "r", encoding="utf-8") as file:
                     try:
-                        data = json.load(file)
+                        data: Dict[str, Any] = json.load(file)
                     except json.JSONDecodeError:
                         data = {}
             else:
@@ -59,6 +67,8 @@ class MyHandler(BaseHTTPRequestHandler):
             with open(DATA_FILE, "w", encoding="utf-8") as file:
                 json.dump(data, file, indent=4, ensure_ascii=False)
 
+            logger.info("Message saved successfully.")
+
             self.send_response(302)
             self.send_header("Location", "/")
             self.end_headers()
@@ -66,14 +76,15 @@ class MyHandler(BaseHTTPRequestHandler):
             self.send_response(404)
             self.end_headers()
 
-    def send_html(self, filename, status=200):
+    def send_html(self, filename: str, status: int = 200) -> None:
         self.send_response(status)
         self.send_header("Content-type", "text/html")
         self.end_headers()
         with open(filename, "rb") as file:
             self.wfile.write(file.read())
+        logger.info(f"Served HTML file: {filename} with status {status}")
 
-    def render_template(self, filename, status=200):
+    def render_template(self, filename: str, status: int = 200) -> None:
         self.send_response(status)
         self.send_header("Content-type", "text/html")
         self.end_headers()
@@ -81,7 +92,7 @@ class MyHandler(BaseHTTPRequestHandler):
         if DATA_FILE.exists():
             with open(DATA_FILE, "r", encoding="utf-8") as file:
                 try:
-                    messages = json.load(file)
+                    messages: Dict[str, Any] = json.load(file)
                 except json.JSONDecodeError:
                     messages = {}
         else:
@@ -90,8 +101,9 @@ class MyHandler(BaseHTTPRequestHandler):
         template = jinja.get_template(filename)
         content = template.render(messages=messages)
         self.wfile.write(content.encode())
+        logger.info(f"Rendered template: {filename}")
 
-    def send_static(self, filename, status=200):
+    def send_static(self, filename: Path, status: int = 200) -> None:
         self.send_response(status)
         mime_type, *_ = mimetypes.guess_type(filename)
         if mime_type:
@@ -101,18 +113,19 @@ class MyHandler(BaseHTTPRequestHandler):
         self.end_headers()
         with open(filename, "rb") as file:
             self.wfile.write(file.read())
+        logger.info(f"Served static file: {filename} with status {status}")
 
 
-def run():
+def run() -> None:
     server_address = ("", 3000)
     httpd = HTTPServer(server_address, MyHandler)
-    print("Starting server on port 3000...")
+    logger.info("Starting server on port 3000...")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
-        print("Server is shutting down...")
+        logger.info("Server is shutting down...")
     except Exception as e:
-        print(f"An error occurred: {e}")
+        logger.error(f"An error occurred: {e}")
     finally:
         httpd.server_close()
 
