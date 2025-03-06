@@ -1,16 +1,19 @@
-[project]
-name = "goit-pythonweb-hw-01"
+[tool.poetry]
+name = "mcs01-06"
 version = "0.1.0"
 description = ""
-authors = [
-    {name = "Oleksandr Moskalyk",email = "alex.moskalik@gmail.com"}
-]
+authors = ["Yuriy Kuchma <krabatua@gmail.com>"]
 readme = "README.md"
-requires-python = ">=3.13"
-dependencies = [
-]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+sqlalchemy = "^2.0.38"
+faker = "^36.1.1"
+psycopg2 = "^2.9.10"
+alembic = "^1.15.1"
+python-dotenv = "^1.0.1"
 
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
+requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
