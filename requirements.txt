@@ -1,0 +1,5 @@
+sqlalchemy
+faker
+psycopg2
+alembic
+python-dotenv

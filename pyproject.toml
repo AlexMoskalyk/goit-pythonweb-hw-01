@@ -1,9 +1,9 @@
 [tool.poetry]
-name = "mcs01-06"
+name = "goit-pythonweb-hw-01"
 version = "0.1.0"
 description = ""
-authors = ["Yuriy Kuchma <krabatua@gmail.com>"]
-readme = "README.md"
+authors = ["Oleksandr Moskalyk <alex.moskalik@gmail.com>"]
+
 
 [tool.poetry.dependencies]
 python = "^3.12"

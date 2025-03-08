@@ -5,6 +5,8 @@ from conf.db import SessionLocal
 from entity.models import Student, Grade, Subject, Teacher, Group
 
 
+
+
 # 1️⃣ Знайти 5 студентів із найбільшим середнім балом з усіх предметів.
 def select_01(session: Session):
     query = (
