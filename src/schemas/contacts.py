@@ -14,6 +14,7 @@ class ContactCreate(BaseModel):
 
 class ContactResponse(ContactCreate):
     id: int
+    user_id: int  # 👈 Required now since contact is tied to a user
     created_at: datetime
     updated_at: datetime
 

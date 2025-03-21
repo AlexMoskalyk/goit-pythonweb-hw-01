@@ -5,10 +5,10 @@ description = ""
 authors = [
     {name = "Oleksandr Moskalyk",email = "alex.moskalik@gmail.com"}
 ]
-readme = "README.md"
-requires-python = ">=3.13"
+
+requires-python = ">=3.7,<4.0"
 [tool.poetry.dependencies]
-python = ">=3.13"
+python = ">=3.9,<4.0"
 fastapi = "0.115.11"
 sqlalchemy = {version = "2.0.39", extras = ["asyncio"]}
 alembic = "1.15.1"
@@ -16,6 +16,11 @@ asyncpg = "0.30.0"
 pydantic-settings = "2.8.1"
 greenlet = "3.1.1"
 pydantic = {version = "2.10.6", extras = ["email"]}
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+python-jose = {extras = ["cryptography"], version = "^3.4.0"}
+slowapi = "^0.1.9"
+fastapi-mail = "^1.4.2"
+cloudinary = "^1.43.0"
 
 
 [build-system]
