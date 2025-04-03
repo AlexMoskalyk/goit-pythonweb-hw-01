@@ -109,10 +109,15 @@ class UserRepository:
             return None
 
         from src.services.auth import get_password_hash
+        from src.conf.redis import user_cache
 
         # Update the password
         user.hashed_password = get_password_hash(new_password)
         db.add(user)
         await db.commit()
         await db.refresh(user)
+
+        # Invalidate cache after password change
+        await user_cache.invalidate_user_data(user.email)
+
         return user

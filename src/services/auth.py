@@ -7,6 +7,7 @@ from fastapi import HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.conf.redis import user_cache
 from src.database.db import get_db
 from src.schemas.users import UserResponse, UserRole
 from src.repository.users import UserRepository
@@ -71,9 +72,29 @@ async def get_current_user(
     except JWTError:
         raise credentials_exception
 
+    # Try to get user from Redis cache first
+    cached_user = await user_cache.get_user_data(email)
+
+    if cached_user:
+        # Convert cached data to UserResponse model
+        from src.schemas.users import UserResponse
+
+        return UserResponse(**cached_user)
+
+    # If not in cache, get from database
     user = await UserRepository.get_by_email(db, email)
     if user is None:
         raise credentials_exception
+
+    # Convert to dict and cache for future requests
+    user_data = {
+        "id": user.id,
+        "email": user.email,
+        "created_at": user.created_at.isoformat(),
+        "avatar_url": user.avatar_url,
+        "role": user.role,
+    }
+    await user_cache.set_user_data(email, user_data)
 
     return user
 

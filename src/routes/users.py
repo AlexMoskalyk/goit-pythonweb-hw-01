@@ -59,6 +59,12 @@ async def upload_avatar(
     )
     url = result.get("secure_url")
     updated_user = await UserRepository.update_avatar(db, current_user, url)
+
+    # Invalidate cache after user update
+    from src.conf.redis import user_cache
+
+    await user_cache.invalidate_user_data(updated_user.email)
+
     return updated_user
 
 
@@ -114,6 +120,19 @@ async def login(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
             status_code=status.HTTP_403_FORBIDDEN, detail="Email is not verified"
         )
 
+    # Cache user data for faster access
+    from src.conf.redis import user_cache
+
+    user_data_dict = {
+        "id": user.id,
+        "email": user.email,
+        "created_at": user.created_at.isoformat(),
+        "avatar_url": user.avatar_url,
+        "role": user.role,
+    }
+    await user_cache.set_user_data(user.email, user_data_dict)
+
+    # Create token with type
     token = create_access_token({"sub": user.email, "type": "access"})
     return {"access_token": token, "token_type": "bearer"}
 

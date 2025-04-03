@@ -4,8 +4,10 @@ from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
+from src.conf.redis import setup_redis_cache
 from src.routes.contacts import router as contacts_router
 from src.routes.users import router as users_router
+from fastapi.middleware.cors import CORSMiddleware
 
 # Setup limiter (without app.state)
 limiter = Limiter(key_func=get_remote_address)
@@ -18,8 +20,6 @@ app = FastAPI(
 )
 
 
-from fastapi.middleware.cors import CORSMiddleware
-
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -28,6 +28,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+async def startup_event():
+    await setup_redis_cache()
 
 
 # Register exception handler directly

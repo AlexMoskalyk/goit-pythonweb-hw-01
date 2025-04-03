@@ -21,6 +21,7 @@ python-jose = {extras = ["cryptography"], version = "^3.4.0"}
 slowapi = "^0.1.9"
 fastapi-mail = "^1.4.2"
 cloudinary = "^1.43.0"
+fastapi-cache = "^0.1.0"
 
 
 [build-system]
