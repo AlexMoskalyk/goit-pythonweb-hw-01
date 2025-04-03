@@ -57,8 +57,17 @@ async def get_current_user(
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
+        token_type: str = payload.get(
+            "type", "access"
+        )  # Default to "access" for backwards compatibility
+
         if email is None:
             raise credentials_exception
+
+        # Ensure we're not using a password reset token for authentication
+        if token_type == "password_reset":
+            raise credentials_exception
+
     except JWTError:
         raise credentials_exception
 

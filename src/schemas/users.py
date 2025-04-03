@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from datetime import datetime
 
 
@@ -29,7 +29,15 @@ class UserResponse(BaseModel):
         from_attributes = True
 
 
-# ✅ Schema for JWT Token Response
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordReset(BaseModel):
+    token: str
+    new_password: str = Field(..., min_length=8)

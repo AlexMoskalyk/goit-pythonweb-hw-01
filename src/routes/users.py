@@ -11,14 +11,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.db import get_db
 from src.entity.models import User
-from src.schemas.users import UserCreate, UserResponse, Token, UserRole
+from src.schemas.users import (
+    UserCreate,
+    UserResponse,
+    Token,
+    UserRole,
+    PasswordResetRequest,
+    PasswordReset,
+)
 from src.repository.users import UserRepository
 from src.services.auth import (
     get_password_hash,
     create_access_token,
-    get_current_user, admin_only,
+    get_current_user,
+    admin_only,
 )
-from src.conf.email import send_verification_email
+from src.conf.email import send_verification_email, send_password_reset_email
 
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -106,7 +114,7 @@ async def login(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
             status_code=status.HTTP_403_FORBIDDEN, detail="Email is not verified"
         )
 
-    token = create_access_token({"sub": user.email})
+    token = create_access_token({"sub": user.email, "type": "access"})
     return {"access_token": token, "token_type": "bearer"}
 
 
@@ -130,3 +138,44 @@ async def promote_to_admin(
     await db.refresh(user)
 
     return user
+
+
+@router.post("/password-reset-request")
+@limiter.limit("3/hour")  # Limit requests to prevent abuse
+async def request_password_reset(
+    request_data: PasswordResetRequest,
+    background_tasks: BackgroundTasks,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Request a password reset email."""
+    # Generate a token
+    token = await UserRepository.create_password_reset_token(db, request_data.email)
+
+    # If the user exists, send an email
+    if token:
+        background_tasks.add_task(send_password_reset_email, request_data.email, token)
+
+    # Always return success to prevent email enumeration attacks
+    return {
+        "message": "If your email exists in our system, you will receive a password reset link"
+    }
+
+
+@router.post("/reset-password")
+async def reset_password(
+    reset_data: PasswordReset,
+    db: AsyncSession = Depends(get_db),
+):
+    """Reset a user's password with a valid token."""
+    user = await UserRepository.reset_password(
+        db, reset_data.token, reset_data.new_password
+    )
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired password reset token",
+        )
+
+    return {"message": "Password has been reset successfully"}

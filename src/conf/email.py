@@ -27,3 +27,15 @@ async def send_verification_email(email: EmailStr, token: str):
     )
     fm = FastMail(conf)
     await fm.send_message(message, template_name="verify_email.html")
+
+
+async def send_password_reset_email(email: EmailStr, token: str):
+    """Send a password reset email with token."""
+    message = MessageSchema(
+        subject="Reset Your Password",
+        recipients=[email],
+        template_body={"token": token},
+        subtype=MessageType.html,
+    )
+    fm = FastMail(conf)
+    await fm.send_message(message, template_name="reset_password.html")
