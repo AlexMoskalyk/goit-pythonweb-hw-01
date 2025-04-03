@@ -11,13 +11,37 @@ from src.conf.config import settings
 
 
 class UserRepository:
+    """Repository for user data operations.
+
+    Provides methods for user management, authentication,
+    and account operations.
+    """
+
     @staticmethod
     async def get_by_email(db: AsyncSession, email: str):
+        """Get a user by email address.
+
+        Args:
+            db (AsyncSession): Database session.
+            email (str): Email to search for.
+
+        Returns:
+            User: Found user or None.
+        """
         result = await db.execute(select(User).where(User.email == email))
         return result.scalar_one_or_none()
 
     @staticmethod
     async def create(db: AsyncSession, user_data: UserCreate):
+        """Create a new user.
+
+        Args:
+            db (AsyncSession): Database session.
+            user_data (UserCreate): User data from schema.
+
+        Returns:
+            User: Created user.
+        """
         hashed_password = get_password_hash(user_data.password)
         user = User(
             email=user_data.email, hashed_password=hashed_password, role=user_data.role
@@ -29,6 +53,15 @@ class UserRepository:
 
     @staticmethod
     async def verify_token(db: AsyncSession, token: str):
+        """Verify a user's email using a token.
+
+        Args:
+            db (AsyncSession): Database session.
+            token (str): JWT verification token.
+
+        Returns:
+            User: Verified user or None if token invalid.
+        """
         try:
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
             email = payload.get("sub")
@@ -46,6 +79,16 @@ class UserRepository:
 
     @staticmethod
     async def authenticate_user(db: AsyncSession, email: str, password: str):
+        """Authenticate a user with email and password.
+
+        Args:
+            db (AsyncSession): Database session.
+            email (str): User's email.
+            password (str): User's password.
+
+        Returns:
+            User: Authenticated user or None if credentials invalid.
+        """
         user = await UserRepository.get_by_email(db, email)
         if not user:
             return None
@@ -59,6 +102,16 @@ class UserRepository:
 
     @staticmethod
     async def update_avatar(db: AsyncSession, user: User, avatar_url: str) -> User:
+        """Update a user's avatar URL.
+
+        Args:
+            db (AsyncSession): Database session.
+            user (User): User to update.
+            avatar_url (str): New avatar URL.
+
+        Returns:
+            User: Updated user.
+        """
         user.avatar_url = avatar_url
         db.add(user)
         await db.commit()
@@ -67,11 +120,18 @@ class UserRepository:
 
     @staticmethod
     async def create_password_reset_token(
-        db: AsyncSession, email: EmailStr
+        db: AsyncSession, email: str
     ) -> Optional[str]:
-        """Create a password reset token for the user."""
-        email_str = str(email)
-        user = await UserRepository.get_by_email(db, email_str)
+        """Create a password reset token for a user.
+
+        Args:
+            db (AsyncSession): Database session.
+            email (str): Email of the user requesting password reset.
+
+        Returns:
+            Optional[str]: Reset token or None if user not found.
+        """
+        user = await UserRepository.get_by_email(db, email)
         if not user:
             return None
 
@@ -90,7 +150,16 @@ class UserRepository:
     async def reset_password(
         db: AsyncSession, token: str, new_password: str
     ) -> Optional[User]:
-        """Reset a user's password using a valid token."""
+        """Reset a user's password using a valid token.
+
+        Args:
+            db (AsyncSession): Database session.
+            token (str): Password reset token.
+            new_password (str): New password to set.
+
+        Returns:
+            Optional[User]: Updated user or None if token invalid.
+        """
         try:
             from src.services.auth import SECRET_KEY, ALGORITHM
             from jose import jwt, JWTError

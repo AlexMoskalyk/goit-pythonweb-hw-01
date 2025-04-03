@@ -25,18 +25,42 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 
-# Hash a password
 def get_password_hash(password: str) -> str:
+    """Hash a password using bcrypt.
+
+    Args:
+        password (str): Plain text password.
+
+    Returns:
+        str: Hashed password.
+    """
     return pwd_context.hash(password)
 
 
-# Verify a password
 def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a password against its hash.
+
+    Args:
+        plain_password (str): Plain text password to verify.
+        hashed_password (str): Hashed password from database.
+
+    Returns:
+        bool: True if password matches, False otherwise.
+    """
     return pwd_context.verify(plain_password, hashed_password)
 
 
-# Create a JWT access token
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """Create a JWT access token.
+
+    Args:
+        data (dict): Token payload data.
+        expires_delta (Optional[timedelta], optional): Token expiration time.
+            Defaults to ACCESS_TOKEN_EXPIRE_MINUTES.
+
+    Returns:
+        str: Encoded JWT token.
+    """
     to_encode = data.copy()
     expire = datetime.utcnow() + (
         expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -45,10 +69,23 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-# Get current user from JWT token
 async def get_current_user(
     token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)
 ) -> UserResponse:
+    """Get the current authenticated user from JWT token.
+
+    First tries to get user from Redis cache, then falls back to database.
+
+    Args:
+        token (str, optional): JWT token from Authorization header.
+        db (AsyncSession, optional): Database session.
+
+    Returns:
+        UserResponse: Current authenticated user.
+
+    Raises:
+        HTTPException: 401 if token invalid or user not found.
+    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",

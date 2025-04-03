@@ -14,6 +14,8 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
+    """Base class for all SQLAlchemy models."""
+
     pass
 
 
@@ -23,6 +25,11 @@ class UserRole(str, Enum):
 
 
 class User(Base):
+    """User model for authentication and profile information.
+
+    Represents a user account in the system.
+    """
+
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -33,15 +40,19 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     avatar_url: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    role: Mapped[UserRole] = mapped_column(
-        String(20), default=UserRole.USER, nullable=False
-    )
+    # User role (default to regular user)
+    role: Mapped[str] = mapped_column(String(20), default="user", nullable=False)
 
     # Relationships
     contacts: Mapped[list["Contact"]] = relationship("Contact", back_populates="user")
 
 
 class Contact(Base):
+    """Contact model for storing address book entries.
+
+    Represents a contact in a user's address book.
+    """
+
     __tablename__ = "contacts"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -60,6 +71,6 @@ class Contact(Base):
         DateTime(timezone=True), default=func.now(), onupdate=func.now()
     )
 
-    # NEW: FK to User
+    # FK to User
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     user: Mapped["User"] = relationship("User", back_populates="contacts")
