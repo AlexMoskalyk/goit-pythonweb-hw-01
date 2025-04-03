@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import Enum
 from typing import Optional
 
 from sqlalchemy import (
@@ -16,6 +17,11 @@ class Base(DeclarativeBase):
     pass
 
 
+class UserRole(str, Enum):
+    USER = "user"
+    ADMIN = "admin"
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -26,9 +32,10 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
-    avatar_url: Mapped[Optional[str]] = mapped_column(
-        String(255), nullable=True
-    )  # ✅ NEW
+    avatar_url: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    role: Mapped[UserRole] = mapped_column(
+        String(20), default=UserRole.USER, nullable=False
+    )
 
     # Relationships
     contacts: Mapped[list["Contact"]] = relationship("Contact", back_populates="user")

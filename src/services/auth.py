@@ -8,7 +8,7 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.db import get_db
-from src.schemas.users import UserResponse
+from src.schemas.users import UserResponse, UserRole
 from src.repository.users import UserRepository
 from src.conf.config import settings
 
@@ -67,3 +67,22 @@ async def get_current_user(
         raise credentials_exception
 
     return user
+
+
+# Add this function
+def RoleChecker(allowed_roles: list[UserRole]):
+    async def check_role(
+        current_user: UserResponse = Depends(get_current_user),
+    ) -> UserResponse:
+        if current_user.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient permissions",
+            )
+        return current_user
+
+    return check_role
+
+
+# Admin-only check
+admin_only = RoleChecker([UserRole.ADMIN])

@@ -6,16 +6,17 @@ from fastapi import (
     BackgroundTasks,
     Request,
 )
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.db import get_db
 from src.entity.models import User
-from src.schemas.users import UserCreate, UserResponse, Token
+from src.schemas.users import UserCreate, UserResponse, Token, UserRole
 from src.repository.users import UserRepository
 from src.services.auth import (
     get_password_hash,
     create_access_token,
-    get_current_user,
+    get_current_user, admin_only,
 )
 from src.conf.email import send_verification_email
 
@@ -38,6 +39,13 @@ async def upload_avatar(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    # Check if user is an admin or has a default avatar
+    if current_user.role != UserRole.ADMIN and current_user.avatar_url is not None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only admin users can change their avatar after setting one",
+        )
+
     result = cloudinary.uploader.upload(
         file.file, public_id=f"user_{current_user.id}_avatar", overwrite=True
     )
@@ -100,3 +108,25 @@ async def login(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
 
     token = create_access_token({"sub": user.email})
     return {"access_token": token, "token_type": "bearer"}
+
+
+@router.post("/promote-to-admin/{user_id}", response_model=UserResponse)
+async def promote_to_admin(
+    user_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(admin_only),
+):
+    # Find the user to promote
+    stmt = select(User).where(User.id == user_id)
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Update role to admin
+    user.role = UserRole.ADMIN
+    await db.commit()
+    await db.refresh(user)
+
+    return user
